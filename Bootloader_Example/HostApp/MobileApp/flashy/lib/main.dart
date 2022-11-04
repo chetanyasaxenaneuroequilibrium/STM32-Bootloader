@@ -28,11 +28,11 @@ final int ETX_OTA_CMD_ABORT = 2;                // OTA Abort command
 final int ETX_OTA_DATA_MAX_SIZE = 1024;         //Maximum data Size
 final int ETX_OTA_DATA_OVERHEAD = 9;            //data overhead
 
-final command  = Uint8List(10);
-final header   = Uint8List(25);
+final command = Uint8List(10);
+final header = Uint8List(25);
 PlatformFile file;
 BluetoothCharacteristic G_characteristic;
-var should_stop = false;
+bool should_stop = false;
 
 final List<int> crc_table = [
   0x00000000, 0x04C11DB7, 0x09823B6E, 0x0D4326D9, 0x130476DC, 0x17C56B6B, 0x1A864DB2, 0x1E475005, 0x2608EDB8, 0x22C9F00F, 0x2F8AD6D6, 0x2B4BCB61, 0x350C9B64, 0x31CD86D3, 0x3C8EA00A, 0x384FBDBD,
@@ -57,12 +57,13 @@ void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'Flashy',
-    theme: ThemeData(
-      primarySwatch: Palette.kToDark,
-    ),
-    home:  StreamBuilder<BluetoothState>(
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flashy',
+      theme: ThemeData(
+        primarySwatch: Palette.kToDark,
+      ),
+      home: StreamBuilder<BluetoothState>(
         stream: FlutterBlue.instance.state,
         initialData: BluetoothState.unknown,
         builder: (c, snapshot) {
@@ -71,8 +72,10 @@ class MyApp extends StatelessWidget {
             return MyHomePage(title: "EmbeTronicX Flashy");
           }
           return BluetoothOffScreen(state: state);
-        }),
-  );
+        },
+      ),
+    );
+  }
 }
 
 class BluetoothOffScreen extends StatelessWidget {
@@ -95,10 +98,6 @@ class BluetoothOffScreen extends StatelessWidget {
             ),
             Text(
               'Bluetooth Adapter is ${state != null ? state.toString().substring(15) : 'not available'}.',
-              style: Theme.of(context)
-                  .primaryTextTheme
-                  .subhead
-                  .copyWith(color: Colors.white),
             ),
           ],
         ),
@@ -112,7 +111,7 @@ class MyHomePage extends StatefulWidget {
 
   final String title;
   final FlutterBlue flutterBlue = FlutterBlue.instance;
-  final List<BluetoothDevice> devicesList = new List<BluetoothDevice>();
+  final List<BluetoothDevice> devicesList = [];
   final Map<Guid, List<int>> readValues = new Map<Guid, List<int>>();
 
   @override
@@ -143,34 +142,24 @@ class _MyHomePageState extends State<MyHomePage> {
           isCloseButton: false,
           isOverlayTapDismiss: false,
         );
-        Alert(
-            context: context,
-            style: alertStyle,
-            title: "Enable Bluetooth",
-            useRootNavigator: false,
-            buttons: [
-              DialogButton(
-                onPressed: () {
-                  should_stop = true;
-                  Navigator.of(
-                      context, rootNavigator: true)
-                      .pop();
-                },
-                child: Text(
-                  "Okay",
-                  style: TextStyle(
-                      color: Colors.white, fontSize: 10),
-                ),
-              )
-            ]).show();
+        Alert(context: context, style: alertStyle, title: "Enable Bluetooth", useRootNavigator: false, buttons: [
+          DialogButton(
+            onPressed: () {
+              should_stop = true;
+              Navigator.of(context, rootNavigator: true).pop();
+            },
+            child: Text(
+              "Okay",
+              style: TextStyle(color: Colors.white, fontSize: 10),
+            ),
+          )
+        ]).show();
       } else if (state == BluetoothState.on) {
         //if bluetooth is enabled then go ahead.
       }
     });
 
-    widget.flutterBlue.connectedDevices
-        .asStream()
-        .listen((List<BluetoothDevice> devices) {
+    widget.flutterBlue.connectedDevices.asStream().listen((List<BluetoothDevice> devices) {
       for (BluetoothDevice device in devices) {
         _addDeviceTolist(device);
       }
@@ -184,7 +173,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   ListView _buildListViewOfDevices() {
-    List<Container> containers = new List<Container>();
+    List<Container> containers = [];
     for (BluetoothDevice device in widget.devicesList) {
       containers.add(
         Container(
@@ -199,8 +188,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   ],
                 ),
               ),
-              FlatButton(
-                color: Colors.green,
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.green,
+                ),
                 child: Text(
                   'Connect',
                   style: TextStyle(color: Colors.white),
@@ -235,9 +226,8 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  List<ButtonTheme> _buildReadWriteNotifyButton(
-      BluetoothCharacteristic characteristic) {
-    List<ButtonTheme> buttons = new List<ButtonTheme>();
+  List<ButtonTheme> _buildReadWriteNotifyButton(BluetoothCharacteristic characteristic) {
+    List<ButtonTheme> buttons = [];
 
     if (characteristic.properties.read) {
       buttons.add(
@@ -246,9 +236,16 @@ class _MyHomePageState extends State<MyHomePage> {
           height: 20,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: RaisedButton(
-              color: Colors.green,
-              child: Text('READ', style: TextStyle(color: Colors.white)),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+              ),
+              child: Text(
+                'READ',
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
               onPressed: () async {
                 var sub = characteristic.value.listen((value) {
                   setState(() {
@@ -270,7 +267,7 @@ class _MyHomePageState extends State<MyHomePage> {
           height: 20,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: RaisedButton(
+            child: ElevatedButton(
               child: Text('WRITE', style: TextStyle(color: Colors.white)),
               onPressed: () {
                 should_stop = false;
@@ -289,7 +286,7 @@ class _MyHomePageState extends State<MyHomePage> {
           height: 20,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: RaisedButton(
+            child: ElevatedButton(
               child: Text('NOTIFY', style: TextStyle(color: Colors.white)),
               onPressed: () async {
                 characteristic.value.listen((value) {
@@ -307,10 +304,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   ListView _buildConnectDeviceView() {
-    List<Container> containers = new List<Container>();
+    List<Container> containers = [];
 
     for (BluetoothService service in _services) {
-      List<Widget> characteristicsWidget = new List<Widget>();
+      List<Widget> characteristicsWidget = [];
 
       for (BluetoothCharacteristic characteristic in service.characteristics) {
         characteristicsWidget.add(
@@ -320,8 +317,7 @@ class _MyHomePageState extends State<MyHomePage> {
               children: <Widget>[
                 Row(
                   children: <Widget>[
-                    Text(characteristic.uuid.toString(),
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(characteristic.uuid.toString(), style: TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
                 Row(
@@ -331,8 +327,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 Row(
                   children: <Widget>[
-                    Text('Value: ' +
-                        widget.readValues[characteristic.uuid].toString()),
+                    Text('Value: ' + widget.readValues[characteristic.uuid].toString()),
                   ],
                 ),
                 Divider(),
@@ -343,9 +338,7 @@ class _MyHomePageState extends State<MyHomePage> {
       }
       containers.add(
         Container(
-          child: ExpansionTile(
-              title: Text(service.uuid.toString()),
-              children: characteristicsWidget),
+          child: ExpansionTile(title: Text(service.uuid.toString()), children: characteristicsWidget),
         ),
       );
     }
@@ -367,17 +360,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: Text(widget.title),
-    ),
-    body: _buildView(),
-  );
+        appBar: AppBar(
+          title: Text(widget.title),
+        ),
+        body: _buildView(),
+      );
 
-  void sendBLE( List<int> data, BluetoothCharacteristic characteristic ) {
+  void sendBLE(List<int> data, BluetoothCharacteristic characteristic) {
     for (var e in data) {
-        sleep(Duration(milliseconds:50));
-        print(e);
-        characteristic.write(Uint8List.fromList([e]), withoutResponse: true);
+      sleep(Duration(milliseconds: 50));
+      print(e);
+      characteristic.write(Uint8List.fromList([e]), withoutResponse: true);
     }
 
     /*
@@ -409,77 +402,76 @@ class _MyHomePageState extends State<MyHomePage> {
     //TODO: Implement Read and Verify response
   }
 
-  Uint8List getOtaCommand ( int cmd ) {
-    command[0] = ETX_OTA_SOF;               //Start of frame
-    command[1] = ETX_OTA_PACKET_TYPE_CMD;   //Command type
-    command[2] = 0x01;                      //Len LSB
-    command[3] = 0x00;                      //Len MSB
-    command[4] = cmd;                       //cmd
+  Uint8List getOtaCommand(int cmd) {
+    command[0] = ETX_OTA_SOF; //Start of frame
+    command[1] = ETX_OTA_PACKET_TYPE_CMD; //Command type
+    command[2] = 0x01; //Len LSB
+    command[3] = 0x00; //Len MSB
+    command[4] = cmd; //cmd
 
     int crc = CalcCRC([cmd]);
-    command[5] = (crc >>  0) & 0x000000FF;  //CRC LSB
-    command[6] = (crc >>  8) & 0x000000FF;  //CRC
-    command[7] = (crc >> 16) & 0x000000FF;  //CRC
-    command[8] = (crc >> 24) & 0x000000FF;  //CRC MSB
-    command[9] = ETX_OTA_EOF;               //End of frame
+    command[5] = (crc >> 0) & 0x000000FF; //CRC LSB
+    command[6] = (crc >> 8) & 0x000000FF; //CRC
+    command[7] = (crc >> 16) & 0x000000FF; //CRC
+    command[8] = (crc >> 24) & 0x000000FF; //CRC MSB
+    command[9] = ETX_OTA_EOF; //End of frame
 
     return command;
   }
 
-  Uint8List getOtaHeader ( int package_size, int package_crc ) {
-    header[0]  = ETX_OTA_SOF;                         //Start of frame
-    header[1]  = ETX_OTA_PACKET_TYPE_HEADER;          //Header type
-    header[2]  = 0x10;                                //Len LSB
-    header[3]  = 0x00;                                //Len MSB
-    header[4]  = (package_size >>  0) & 0x000000FF;   //Data
-    header[5]  = (package_size >>  8) & 0x000000FF;   //Data
-    header[6]  = (package_size >> 16) & 0x000000FF;   //Data
-    header[7]  = (package_size >> 24) & 0x000000FF;   //Data
+  Uint8List getOtaHeader(int package_size, int package_crc) {
+    header[0] = ETX_OTA_SOF; //Start of frame
+    header[1] = ETX_OTA_PACKET_TYPE_HEADER; //Header type
+    header[2] = 0x10; //Len LSB
+    header[3] = 0x00; //Len MSB
+    header[4] = (package_size >> 0) & 0x000000FF; //Data
+    header[5] = (package_size >> 8) & 0x000000FF; //Data
+    header[6] = (package_size >> 16) & 0x000000FF; //Data
+    header[7] = (package_size >> 24) & 0x000000FF; //Data
 
-    header[8]  = (package_crc >>  0) & 0x000000FF;    //Data
-    header[9]  = (package_crc >>  8) & 0x000000FF;    //Data
-    header[10] = (package_crc >> 16) & 0x000000FF;    //Data
-    header[11] = (package_crc >> 24) & 0x000000FF;    //Data
+    header[8] = (package_crc >> 0) & 0x000000FF; //Data
+    header[9] = (package_crc >> 8) & 0x000000FF; //Data
+    header[10] = (package_crc >> 16) & 0x000000FF; //Data
+    header[11] = (package_crc >> 24) & 0x000000FF; //Data
 
-    header[12] = 0x00;                                //Reserved Data
-    header[13] = 0x00;                                //Reserved Data
-    header[14] = 0x00;                                //Reserved Data
-    header[15] = 0x00;                                //Reserved Data
-    header[16] = 0x00;                                //Reserved Data
-    header[17] = 0x00;                                //Reserved Data
-    header[18] = 0x00;                                //Reserved Data
-    header[19] = 0x00;                                //Reserved Data
+    header[12] = 0x00; //Reserved Data
+    header[13] = 0x00; //Reserved Data
+    header[14] = 0x00; //Reserved Data
+    header[15] = 0x00; //Reserved Data
+    header[16] = 0x00; //Reserved Data
+    header[17] = 0x00; //Reserved Data
+    header[18] = 0x00; //Reserved Data
+    header[19] = 0x00; //Reserved Data
 
     int crc = CalcCRC(header.sublist(4, 20));
-    header[20] = (crc >>  0) & 0x000000FF;            //CRC LSB
-    header[21] = (crc >>  8) & 0x000000FF;            //CRC
-    header[22] = (crc >> 16) & 0x000000FF;            //CRC
-    header[23] = (crc >> 24) & 0x000000FF;            //CRC MSB
-    header[24] = ETX_OTA_EOF;                         //End of frame
+    header[20] = (crc >> 0) & 0x000000FF; //CRC LSB
+    header[21] = (crc >> 8) & 0x000000FF; //CRC
+    header[22] = (crc >> 16) & 0x000000FF; //CRC
+    header[23] = (crc >> 24) & 0x000000FF; //CRC MSB
+    header[24] = ETX_OTA_EOF; //End of frame
 
     return header;
   }
 
-  List<int> getOtaData ( List<int> data ) {
+  List<int> getOtaData(List<int> data) {
     final List<int> ota_data = [];
-    ota_data.add( ETX_OTA_SOF );                         //Start of frame
-    ota_data.add( ETX_OTA_PACKET_TYPE_DATA );            //Data type
-    ota_data.add( data.length & 0xFF );                  //Len LSB
-    ota_data.add( (data.length >> 8) & 0xFF );           //Len MSB
-    ota_data.addAll(Uint8List.fromList(data));                               //Data
+    ota_data.add(ETX_OTA_SOF); //Start of frame
+    ota_data.add(ETX_OTA_PACKET_TYPE_DATA); //Data type
+    ota_data.add(data.length & 0xFF); //Len LSB
+    ota_data.add((data.length >> 8) & 0xFF); //Len MSB
+    ota_data.addAll(Uint8List.fromList(data)); //Data
 
     int crc = CalcCRC(data);
-    ota_data.add( (crc >>  0) & 0x000000FF );            //CRC LSB
-    ota_data.add( (crc >>  8) & 0x000000FF );            //CRC
-    ota_data.add( (crc >> 16) & 0x000000FF );            //CRC
-    ota_data.add( (crc >> 24) & 0x000000FF );            //CRC MSB
-    ota_data.add( ETX_OTA_EOF );                         //End of frame
+    ota_data.add((crc >> 0) & 0x000000FF); //CRC LSB
+    ota_data.add((crc >> 8) & 0x000000FF); //CRC
+    ota_data.add((crc >> 16) & 0x000000FF); //CRC
+    ota_data.add((crc >> 24) & 0x000000FF); //CRC MSB
+    ota_data.add(ETX_OTA_EOF); //End of frame
 
     return ota_data;
   }
 
-  int CalcCRC(List<int> data)
-  {
+  int CalcCRC(List<int> data) {
     Uint8List bytes = Uint8List.fromList(data);
     int Checksum = 0xFFFFFFFF;
 
@@ -496,7 +488,7 @@ class _MyHomePageState extends State<MyHomePage> {
     List chunks = [];
     int len = list.length;
     for (var i = 0; i < len; i += chunkSize) {
-      int size = i+chunkSize;
+      int size = i + chunkSize;
       chunks.add(list.sublist(i, size > len ? len : size));
     }
     return chunks;
@@ -505,178 +497,140 @@ class _MyHomePageState extends State<MyHomePage> {
   _onAlertWithRootNavigator(BuildContext context) {
     Navigator.of(context).push(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            CupertinoTabScaffold(
-              tabBar: CupertinoTabBar(
-                items: <BottomNavigationBarItem>[
-                  BottomNavigationBarItem(icon: Icon(Icons.info)),
-                  BottomNavigationBarItem(icon: Icon(Icons.search))
-                ],
-              ),
-              tabBuilder: (BuildContext context, int index) {
-                return CupertinoTabView(
-                  builder: (BuildContext context) {
-                    return CupertinoPageScaffold(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "Firmware OTA is about to Start. Please Select the Firmware File!!!",
-                            style: TextStyle(inherit: false, color: Colors.black),
-                            textAlign: TextAlign.center,
-                          ),
-                          ElevatedButton(
-                            child: Text('PICK FILE'),
-                            onPressed: () async {
-                              FilePickerResult result = await FilePicker.platform.pickFiles( withData: true);
-                              if(result != null) {
-                                file = result.files.first;
-                                if (file.extension == "bin") {
-                                  print(" File Name : " + file.name);
-                                  print("File Size : " + file.size.toString());
-
-                                  print("FIle PATH : " + file.path);
-
-                                  _onAlertWithRootNavigator1(context);
-                                } else {
-                                  Alert(
-                                      context: context,
-                                      title: "Please select the bin file!!!",
-                                      useRootNavigator: false,
-                                      buttons: [
-                                        DialogButton(
-                                          onPressed: () =>
-                                              Navigator.of(
-                                                  context, rootNavigator: true)
-                                                  .pop(),
-                                          child: Text(
-                                            "Okay",
-                                            style: TextStyle(
-                                                color: Colors.white, fontSize: 10),
-                                          ),
-                                        )
-                                      ]).show();
-                                }
-                              }
-                              else {
-                              }
-                            },
-                          ),
-                        ],
+        pageBuilder: (context, animation, secondaryAnimation) => CupertinoTabScaffold(
+          tabBar: CupertinoTabBar(
+            items: <BottomNavigationBarItem>[BottomNavigationBarItem(icon: Icon(Icons.info)), BottomNavigationBarItem(icon: Icon(Icons.search))],
+          ),
+          tabBuilder: (BuildContext context, int index) {
+            return CupertinoTabView(
+              builder: (BuildContext context) {
+                return CupertinoPageScaffold(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Firmware OTA is about to Start. Please Select the Firmware File!!!",
+                        style: TextStyle(inherit: false, color: Colors.black),
+                        textAlign: TextAlign.center,
                       ),
-                    );
-                  },
+                      ElevatedButton(
+                        child: Text('PICK FILE'),
+                        onPressed: () async {
+                          FilePickerResult result = await FilePicker.platform.pickFiles(withData: true);
+                          if (result != null) {
+                            file = result.files.first;
+                            if (file.extension == "bin") {
+                              print(" File Name : " + file.name);
+                              print("File Size : " + file.size.toString());
+
+                              print("FIle PATH : " + file.path);
+
+                              _onAlertWithRootNavigator1(context);
+                            } else {
+                              Alert(context: context, title: "Please select the bin file!!!", useRootNavigator: false, buttons: [
+                                DialogButton(
+                                  onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+                                  child: Text(
+                                    "Okay",
+                                    style: TextStyle(color: Colors.white, fontSize: 10),
+                                  ),
+                                )
+                              ]).show();
+                            }
+                          } else {}
+                        },
+                      ),
+                    ],
+                  ),
                 );
               },
-            ),
+            );
+          },
+        ),
       ),
     );
   }
 
   _onAlertWithRootNavigator1(BuildContext context) {
-
     Navigator.of(context, rootNavigator: true).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            CupertinoTabScaffold(
-              tabBar: CupertinoTabBar(
-                items: <BottomNavigationBarItem>[
-                  BottomNavigationBarItem(icon: Icon(Icons.info)),
-                  BottomNavigationBarItem(icon: Icon(Icons.search))
-                ],
-              ),
-              tabBuilder: (BuildContext context, int index) {
-                return CupertinoTabView(
-                  builder: (BuildContext context) {
-                    return CupertinoPageScaffold(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            "You have selected the " +file.name +". Firmware OTA is about to Start. Press the START!!!",
-                            style: TextStyle(inherit: false, color: Colors.black),
-                            textAlign: TextAlign.center,
-                          ),
-                          ElevatedButton(
-                            child: Text('START'),
-                            onPressed: () {
+        pageBuilder: (context, animation, secondaryAnimation) => CupertinoTabScaffold(
+          tabBar: CupertinoTabBar(
+            items: <BottomNavigationBarItem>[BottomNavigationBarItem(icon: Icon(Icons.info)), BottomNavigationBarItem(icon: Icon(Icons.search))],
+          ),
+          tabBuilder: (BuildContext context, int index) {
+            return CupertinoTabView(
+              builder: (BuildContext context) {
+                return CupertinoPageScaffold(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "You have selected the " + file.name + ". Firmware OTA is about to Start. Press the START!!!",
+                        style: TextStyle(inherit: false, color: Colors.black),
+                        textAlign: TextAlign.center,
+                      ),
+                      ElevatedButton(
+                        child: Text('START'),
+                        onPressed: () {
+                          var alertStyle = AlertStyle(
+                            isCloseButton: false,
+                            isOverlayTapDismiss: false,
+                          );
 
-                              var alertStyle = AlertStyle(
-                                isCloseButton: false,
-                                isOverlayTapDismiss: false,
-                              );
+                          Alert(context: context, style: alertStyle, title: "FOTA In progress. Wait until it finishes!!!", useRootNavigator: false, buttons: [
+                            DialogButton(
+                              onPressed: () async {
+                                should_stop = true;
+                                Navigator.of(context, rootNavigator: true).pop();
+                              },
+                              child: Text(
+                                "Cancel",
+                                style: TextStyle(color: Colors.white, fontSize: 10),
+                              ),
+                            )
+                          ]).show();
 
+                          // To keep the screen on:
+                          Wakelock.enable();
 
-                              Alert(
-                                  context: context,
-                                  style: alertStyle,
-                                  title: "FOTA In progress. Wait until it finishes!!!",
-                                  useRootNavigator: false,
-                                  buttons: [
-                                    DialogButton(
-                                      onPressed: () async {
-                                        should_stop = true;
-                                        Navigator.of(
-                                            context, rootNavigator: true)
-                                            .pop();
-                                      },
-                                      child: Text(
-                                        "Cancel",
-                                        style: TextStyle(
-                                            color: Colors.white, fontSize: 10),
-                                      ),
-                                    )
-                                  ]).show();
+                          //Timer(Duration(seconds: 1), () {
+                          File _file = new File(file.path);
+                          var file_contents = _file.readAsBytesSync();
 
-                              // To keep the screen on:
-                              Wakelock.enable();
+                          //Initiate the OTA process
+                          G_characteristic.write(utf8.encode("ota"));
+                          sleep(Duration(seconds: 2));
 
-                              //Timer(Duration(seconds: 1), () {
-                                File _file = new File(file.path);
-                                var file_contents = _file.readAsBytesSync();
+                          //wait for 1 sec and do the OTA process
+                          Timer(Duration(seconds: 1), () {
+                            //send OTA START
+                            print("Sending OTA START");
+                            sendBLE(getOtaCommand(ETX_OTA_CMD_START), G_characteristic);
 
-                                //Initiate the OTA process
-                                G_characteristic.write(utf8.encode("ota"));
-                                sleep(Duration(seconds:2));
+                            //Send OTA HEADER
+                            print("Sending OTA HEADER");
+                            sendBLE(getOtaHeader(file.size, CalcCRC(file.bytes)), G_characteristic);
 
-                                //wait for 1 sec and do the OTA process
-                                Timer(Duration(seconds: 1), () {
-                                  //send OTA START
-                                  print("Sending OTA START");
-                                  sendBLE(getOtaCommand(ETX_OTA_CMD_START),
-                                      G_characteristic);
+                            //Split the data
+                            int len = file.size;
+                            int start = 0;
 
-                                  //Send OTA HEADER
-                                  print("Sending OTA HEADER");
-                                  sendBLE(getOtaHeader(
-                                      file.size, CalcCRC(file.bytes)),
-                                      G_characteristic);
+                            print("Sending OTA DATA");
+                            for (start = 0; start < file.size;) {
+                              if (should_stop == true) {
+                                break;
+                              }
+                              int size = ((file.size - start) > ETX_OTA_DATA_MAX_SIZE) ? ETX_OTA_DATA_MAX_SIZE : (file.size - start);
+                              print("Size = " + size.toString());
 
-                                  //Split the data
-                                  int len = file.size;
-                                  int start = 0;
-
-                                  print("Sending OTA DATA");
-                                  for (start = 0; start < file.size;) {
-                                    if (should_stop == true) {
-                                      break;
-                                    }
-                                    int size = ((file.size - start) >
-                                        ETX_OTA_DATA_MAX_SIZE)
-                                        ? ETX_OTA_DATA_MAX_SIZE
-                                        : (file.size - start);
-                                    print("Size = " + size.toString());
-
-                                    //Send OTA DATA Chunk
-                                    sendBLE(getOtaData(file_contents.sublist(
-                                        start, start + size)),
-                                        G_characteristic);
-                                    print("Start = " + start.toString() +
-                                        " End = " + (start + size).toString());
-                                    //print(contents.sublist(start, start+size));
-                                    if (start == 0) {
-                                      sleep(Duration(seconds:5));
-                                      /*
+                              //Send OTA DATA Chunk
+                              sendBLE(getOtaData(file_contents.sublist(start, start + size)), G_characteristic);
+                              print("Start = " + start.toString() + " End = " + (start + size).toString());
+                              //print(contents.sublist(start, start+size));
+                              if (start == 0) {
+                                sleep(Duration(seconds: 5));
+                                /*
                                       //Add some delay for the first chunk.
                                       for (var i = 0; i < 99999; i++) {
                                         for (var i = 0; i < 9999; i++) {
@@ -685,51 +639,46 @@ class _MyHomePageState extends State<MyHomePage> {
                                       }
 
                                        */
-                                    }
-                                    start += size;
-                                  }
+                              }
+                              start += size;
+                            }
 
-                                  //send OTA END
-                                  print("Sending OTA END");
-                                  sendBLE(getOtaCommand(ETX_OTA_CMD_END),
-                                      G_characteristic);
+                            //send OTA END
+                            print("Sending OTA END");
+                            sendBLE(getOtaCommand(ETX_OTA_CMD_END), G_characteristic);
 
-                                  // To let the screen turn off again:
-                                  Wakelock.disable();
+                            // To let the screen turn off again:
+                            Wakelock.disable();
 
-                                  showDialog(
-                                      context: context,
-                                      useRootNavigator: false,
-                                      barrierDismissible: false,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          title: new Text('Success!!!'),
-                                          content: Text(
-                                              "Firmware Download Successfully Finished!!!"),
-                                          actions: <Widget>[
-                                            TextButton(
-                                              child: Text("Okay"),
-                                              onPressed: () {
-                                                Navigator.of(
-                                                    context, rootNavigator: true)
-                                                    .pop();
-                                              },
-                                            ),
-                                          ],
-                                        );
-                                      });
-
+                            showDialog(
+                                context: context,
+                                useRootNavigator: false,
+                                barrierDismissible: false,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: new Text('Success!!!'),
+                                    content: Text("Firmware Download Successfully Finished!!!"),
+                                    actions: <Widget>[
+                                      TextButton(
+                                        child: Text("Okay"),
+                                        onPressed: () {
+                                          Navigator.of(context, rootNavigator: true).pop();
+                                        },
+                                      ),
+                                    ],
+                                  );
                                 });
-                              //});
-                            },
-                          ),
-                        ],
+                          });
+                          //});
+                        },
                       ),
-                    );
-                  },
+                    ],
+                  ),
                 );
               },
-            ),
+            );
+          },
+        ),
       ),
     );
   }
